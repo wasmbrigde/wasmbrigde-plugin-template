@@ -73,6 +73,7 @@ pub fn info() -> FnResult<Json<PluginInfo>> {
 
 #[plugin_fn]
 pub fn handle_request(Json(req): Json<PluginRequest>) -> FnResult<Json<PluginResponse>> {
+    log!(LogLevel::Info, "Handling request: {} {}", req.method, req.path);
     // В зависимости от req.path и req.method выполняем логику
     match (req.method.as_str(), req.path.as_str()) {
         ("GET", "/info") => {
@@ -91,7 +92,7 @@ pub fn handle_request(Json(req): Json<PluginRequest>) -> FnResult<Json<PluginRes
             Ok(Json(PluginResponse { status: 200, headers: Default::default(), body: Some(body) }))
         }
         ("GET", "/secure_data") => {
-            let url = config::get("api_url")?.unwrap_or_default();
+            let url = config::get("api_url")?.unwrap_or_default().trim().to_string();
             if url.is_empty() {
                 return Ok(Json(PluginResponse {
                     status: 400,
@@ -100,24 +101,29 @@ pub fn handle_request(Json(req): Json<PluginRequest>) -> FnResult<Json<PluginRes
                 }));
             }
 
-            let req = HttpRequest::new(&url).with_method("GET");
-            let resp = match http::request::<()>(&req, None) {
+            log!(LogLevel::Info, "Sending secure request to: {}", url);
+            let http_req = HttpRequest::new(&url).with_method("GET");
+            
+            let resp = match http::request::<()>(&http_req, None) {
                 Ok(r) => r,
                 Err(e) => {
+                    log!(LogLevel::Error, "Secure request failed: {}", e);
                     return Ok(Json(PluginResponse {
                         status: 502,
                         headers: Default::default(),
-                        body: Some(
-                            format!("Secure request failed (SSL Error): {}", e).into_bytes(),
-                        ),
+                        body: Some(format!("Secure request failed: {}", e).into_bytes()),
                     }));
                 }
             };
 
+            let status = resp.status_code();
+            let body = resp.body();
+            log!(LogLevel::Info, "Secure request successful, status: {}, body len: {}", status, body.len());
+
             Ok(Json(PluginResponse {
-                status: resp.status_code() as u16,
+                status: status as u16,
                 headers: Default::default(),
-                body: Some(resp.body()),
+                body: Some(body),
             }))
         }
         ("GET", "/insecure_data") => {
