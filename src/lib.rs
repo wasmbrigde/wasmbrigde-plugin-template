@@ -7,7 +7,6 @@ use extism_pdk::*;
 use plugin_protocol::{
     EndpointInfo, PluginInfo, PluginRequest, PluginResponse, SettingDef, SettingType,
 };
-use serde_json;
 
 #[host_fn]
 extern "ExtismHost" {
