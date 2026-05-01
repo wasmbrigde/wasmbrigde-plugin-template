@@ -182,7 +182,6 @@ dependencies = [
 [[package]]
 name = "plugin-protocol"
 version = "0.1.0"
-source = "git+https://github.com/wasmbrigde/wasmbrigde#680890078c002b415412c8b56470a509e9663ca5"
 dependencies = [
  "serde",
 ]
